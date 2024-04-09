@@ -56,6 +56,7 @@ class ConnectionManager extends AbstractConnectionManager {
 
     options.inMemory = options.storage === ':memory:' ? 1 : 0;
 
+    const config = this.config;
     const dialectOptions = this.sequelize.options.dialectOptions;
     const defaultReadWriteMode = this.lib.OPEN_READWRITE | this.lib.OPEN_CREATE;
 
@@ -69,6 +70,8 @@ class ConnectionManager extends AbstractConnectionManager {
       // automatic path provision for `options.storage`
       fs.mkdirSync(path.dirname(options.storage), { recursive: true });
     }
+
+    await this.sequelize.runHooks('beforeConnect', config);
 
     const connection = await new Promise((resolve, reject) => {
       this.connections[options.inMemory || options.uuid] = new this.lib.Database(
@@ -91,6 +94,8 @@ class ConnectionManager extends AbstractConnectionManager {
       // explicitly disallowed. It's still opt-in per relation
       connection.run('PRAGMA FOREIGN_KEYS=ON');
     }
+
+    await this.sequelize.runHooks('afterConnect', connection, config);
 
     return connection;
   }
